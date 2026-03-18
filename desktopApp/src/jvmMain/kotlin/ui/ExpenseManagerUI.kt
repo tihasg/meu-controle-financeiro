@@ -1,6 +1,7 @@
 package ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,19 +33,23 @@ fun ExpenseManagerUI(database: ExpenseDatabase) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF4F6F8))
+                .background(Color(0xFFEEF2F7))
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
-                horizontalArrangement = Arrangement.spacedBy(20.dp)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 AddExpensePanel(
-                    modifier = Modifier.width(340.dp),
+                    modifier = Modifier.width(360.dp),
                     onAddExpense = { expense ->
-                        database.addExpense(expense)
-                        expenses = database.getAllExpenses()
+                        try {
+                            database.addExpense(expense)
+                            expenses = database.getAllExpenses()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     },
                     totalCount = expenses.size,
                     totalEmAberto = totalEmAberto,
@@ -54,13 +59,21 @@ fun ExpenseManagerUI(database: ExpenseDatabase) {
                     modifier = Modifier.weight(1f),
                     expenses = expenses,
                     onStatusToggle = { expense ->
-                        val newStatus = if (expense.status == "Pago") "Aguardando" else "Pago"
-                        database.updateExpenseStatus(expense.id, newStatus)
-                        expenses = database.getAllExpenses()
+                        try {
+                            val newStatus = if (expense.status == "Pago") "Aguardando" else "Pago"
+                            database.updateExpenseStatus(expense.id, newStatus)
+                            expenses = database.getAllExpenses()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     },
                     onDelete = { expense ->
-                        database.deleteExpense(expense.id)
-                        expenses = database.getAllExpenses()
+                        try {
+                            database.deleteExpense(expense.id)
+                            expenses = database.getAllExpenses()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 )
             }
@@ -86,68 +99,97 @@ private fun AddExpensePanel(
         modifier = Modifier
             .then(modifier)
             .fillMaxHeight(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = 2.dp,
+        shape = RoundedCornerShape(20.dp),
+        elevation = 8.dp,
         color = Color.White
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(28.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
+            // Header
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "💰 Controle de Gastos",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF065F46)
+                )
+                Text(
+                    text = "Gerencie suas despesas de forma simples e eficiente",
+                    color = Color(0xFF6B7280),
+                    fontSize = 14.sp
+                )
+            }
+
+            Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFE5E7EB))
+
+            // Summary Cards com cores diferentes
+            SummaryCard(
+                title = "📊 Total de Despesas",
+                value = totalCount.toString(),
+                backgroundColor = Color(0xFFECFDF5),
+                textColor = Color(0xFF065F46)
+            )
+            SummaryCard(
+                title = "⏳ Pendente",
+                value = formatCurrency(totalEmAberto),
+                backgroundColor = Color(0xFFFEF3C7),
+                textColor = Color(0xFF92400E)
+            )
+            SummaryCard(
+                title = "💵 Total Geral",
+                value = formatCurrency(totalGeral),
+                backgroundColor = Color(0xFFF0FDF4),
+                textColor = Color(0xFF15803D)
+            )
+
+            Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFE5E7EB))
+
+            // Form Section
             Text(
-                text = "Controle de despesas",
-                fontSize = 26.sp,
+                text = "➕ Nova Despesa",
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
-            )
-            Text(
-                text = "Cadastre fornecedores, acompanhe pagamentos e mantenha a lista ordenada pelos maiores valores.",
-                color = Color(0xFF64748B)
-            )
-
-            SummaryCard(title = "Despesas", value = totalCount.toString())
-            SummaryCard(title = "Em aberto", value = formatCurrency(totalEmAberto))
-            SummaryCard(title = "Total", value = formatCurrency(totalGeral))
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Nova despesa",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF1E293B)
+                color = Color(0xFF1F2937)
             )
 
             ExpenseTextField(
                 value = fornecedor,
                 onValueChange = { fornecedor = it },
-                label = "Fornecedor"
+                label = "🏢 Fornecedor"
             )
             ExpenseTextField(
                 value = categoria,
                 onValueChange = { categoria = it },
-                label = "Categoria"
+                label = "🏷️ Categoria"
             )
             ExpenseTextField(
                 value = valor,
                 onValueChange = { valor = it },
-                label = "Valor",
+                label = "💰 Valor",
                 keyboardType = KeyboardType.Decimal
             )
             ExpenseTextField(
                 value = vencimento,
                 onValueChange = { vencimento = it },
-                label = "Vencimento (AAAA-MM-DD)"
+                label = "📅 Vencimento (AAAA-MM-DD)"
             )
 
             errorMessage?.let { message ->
-                Text(
-                    text = message,
-                    color = Color(0xFFB91C1C),
-                    fontSize = 12.sp
-                )
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFFEE2E2)
+                ) {
+                    Text(
+                        text = "⚠️ $message",
+                        color = Color(0xDC2626),
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
             }
 
             Button(
@@ -168,29 +210,37 @@ private fun AddExpensePanel(
                     }
 
                     if (errorMessage == null) {
-                        onAddExpense(
-                            Expense(
-                                fornecedor = fornecedor.trim(),
-                                categoria = categoria.trim(),
-                                valor = parsedValue!!,
-                                status = "Aguardando",
-                                vencimento = parsedDate!!
+                        try {
+                            onAddExpense(
+                                Expense(
+                                    fornecedor = fornecedor.trim(),
+                                    categoria = categoria.trim(),
+                                    valor = parsedValue!!,
+                                    status = "Aguardando",
+                                    vencimento = parsedDate!!
+                                )
                             )
-                        )
-                        fornecedor = ""
-                        categoria = ""
-                        valor = ""
-                        vencimento = ""
+                            fornecedor = ""
+                            categoria = ""
+                            valor = ""
+                            vencimento = ""
+                        } catch (e: Exception) {
+                            errorMessage = "Erro ao adicionar: ${e.message}"
+                            e.printStackTrace()
+                        }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
                 colors = ButtonDefaults.buttonColors(
-                    backgroundColor = Color(0xFF0F766E),
+                    backgroundColor = Color(0xFF059669),
                     contentColor = Color.White
                 ),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(14.dp),
+                elevation = ButtonDefaults.elevation(8.dp)
             ) {
-                Text("Adicionar despesa")
+                Text("➕ Adicionar Despesa", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -199,28 +249,35 @@ private fun AddExpensePanel(
 @Composable
 private fun SummaryCard(
     title: String,
-    value: String
+    value: String,
+    backgroundColor: Color = Color(0xFFF8FAFC),
+    textColor: Color = Color(0xFF0F172A)
 ) {
     Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = Color(0xFFF8FAFC)
+        shape = RoundedCornerShape(16.dp),
+        color = backgroundColor,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(90.dp)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .fillMaxSize()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = title,
-                color = Color(0xFF64748B),
-                fontSize = 13.sp
+                color = Color(0xFF6B7280),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
             )
             Text(
                 text = value,
-                color = Color(0xFF0F172A),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold
+                color = textColor,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.padding(top = 6.dp)
             )
         }
     }
@@ -235,25 +292,26 @@ private fun ExpenseListPanel(
 ) {
     Surface(
         modifier = modifier.fillMaxHeight(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = 2.dp,
+        shape = RoundedCornerShape(20.dp),
+        elevation = 8.dp,
         color = Color.White
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .padding(28.dp)
         ) {
             Text(
-                text = "Despesas cadastradas",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
+                text = "📋 Despesas Cadastradas",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF065F46)
             )
             Text(
-                text = "Lista ordenada por valor, do maior para o menor.",
-                color = Color(0xFF64748B),
-                modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
+                text = "Total: ${expenses.size} despesa${if (expenses.size != 1) "s" else ""}",
+                color = Color(0xFF6B7280),
+                modifier = Modifier.padding(top = 4.dp, bottom = 18.dp),
+                fontSize = 14.sp
             )
 
             if (expenses.isEmpty()) {
@@ -261,16 +319,23 @@ private fun ExpenseListPanel(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Nenhuma despesa registrada ainda.",
-                        color = Color(0xFF94A3B8),
-                        fontSize = 15.sp
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text("💭", fontSize = 48.sp)
+                        Text(
+                            text = "Nenhuma despesa registrada ainda",
+                            color = Color(0xFF9CA3AF),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     items(items = expenses, key = { it.id }) { expense ->
                         ExpenseRow(
@@ -291,70 +356,107 @@ private fun ExpenseRow(
     onStatusToggle: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val statusColor = if (expense.status == "Pago") Color(0xFF15803D) else Color(0xFFD97706)
+    val statusColor = if (expense.status == "Pago") Color(0xFF10B981) else Color(0xFFF59E0B)
+    val statusBgColor = if (expense.status == "Pago") Color(0xFFD1FAE5) else Color(0xFFFEF3C7)
+    val daysUntilDue = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), expense.vencimento)
+    val isOverdue = daysUntilDue < 0
+    val urgencyColor = when {
+        isOverdue -> Color(0xFFEF4444)
+        daysUntilDue in 0..3 -> Color(0xFFF59E0B)
+        else -> Color(0xFF6B7280)
+    }
 
     Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = Color(0xFFF8FAFC)
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0xFFFAFAFA),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(140.dp)
+            .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp))
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(18.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = expense.fornecedor,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 17.sp,
-                        color = Color(0xFF0F172A)
-                    )
-                    Text(
-                        text = expense.categoria,
-                        color = Color(0xFF64748B),
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = formatCurrency(expense.valor),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F766E)
-                    )
-                    Text(
-                        text = "Vence em ${expense.vencimento.format(uiDateFormatter)}",
-                        color = Color(0xFF64748B),
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = expense.fornecedor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color(0xFF1F2937)
+                )
+                Text(
+                    text = expense.categoria,
+                    color = Color(0xFF6B7280),
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                Text(
+                    text = if (isOverdue) {
+                        "⚠️ Vencido há ${-daysUntilDue} dia${if (daysUntilDue != -1L) "s" else ""}"
+                    } else if (daysUntilDue == 0L) {
+                        "⏰ Vence hoje!"
+                    } else {
+                        "📅 Vence em $daysUntilDue dia${if (daysUntilDue != 1L) "s" else ""}"
+                    },
+                    color = urgencyColor,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
 
             Column(
                 horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Button(
-                    onClick = onStatusToggle,
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = statusColor,
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(12.dp)
+                Text(
+                    text = formatCurrency(expense.valor),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF059669)
+                )
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = statusBgColor
                 ) {
-                    Text(expense.status)
+                    Text(
+                        text = expense.status,
+                        color = statusColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(6.dp, 3.dp)
+                    )
                 }
-                TextButton(onClick = onDelete) {
-                    Text("Remover", color = Color(0xFFB91C1C))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    Button(
+                        onClick = onStatusToggle,
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = statusColor,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .height(32.dp)
+                            .width(90.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text(if (expense.status == "Pago") "Desfazer" else "Marcar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    TextButton(
+                        onClick = onDelete,
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Text("🗑️", fontSize = 16.sp)
+                    }
                 }
             }
         }
@@ -376,11 +478,13 @@ private fun ExpenseTextField(
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = TextFieldDefaults.outlinedTextFieldColors(
-            focusedBorderColor = Color(0xFF0F766E),
-            focusedLabelColor = Color(0xFF0F766E),
-            cursorColor = Color(0xFF0F766E)
+            focusedBorderColor = Color(0xFF059669),
+            focusedLabelColor = Color(0xFF059669),
+            cursorColor = Color(0xFF059669),
+            backgroundColor = Color(0xFFFAFAFA)
         ),
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(12.dp),
+        textStyle = androidx.compose.material.LocalTextStyle.current.copy(fontSize = 14.sp)
     )
 }
 
@@ -390,4 +494,5 @@ private val brazilLocale = Locale.forLanguageTag("pt-BR")
 private fun formatCurrency(value: Double): String {
     return java.text.NumberFormat.getCurrencyInstance(brazilLocale).format(value)
 }
+
 
