@@ -28,6 +28,7 @@ fun ExpenseManagerUI(database: ExpenseDatabase) {
     var expenses by remember { mutableStateOf(database.getAllExpenses()) }
     val totalEmAberto = expenses.filter { it.status == "Aguardando" }.sumOf { it.valor }
     val totalGeral = expenses.sumOf { it.valor }
+    var expenseToEdit by remember { mutableStateOf<Expense?>(null) }
 
     MaterialTheme {
         Box(
@@ -71,6 +72,25 @@ fun ExpenseManagerUI(database: ExpenseDatabase) {
                         try {
                             database.deleteExpense(expense.id)
                             expenses = database.getAllExpenses()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    },
+                    onEdit = { expense ->
+                        expenseToEdit = expense
+                    }
+                )
+            }
+
+            expenseToEdit?.let { expense ->
+                EditExpenseDialog(
+                    expense = expense,
+                    onDismiss = { expenseToEdit = null },
+                    onSave = { newFornecedor, newValor ->
+                        try {
+                            database.updateExpense(expense.id, newFornecedor, newValor)
+                            expenses = database.getAllExpenses()
+                            expenseToEdit = null
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }
@@ -288,7 +308,8 @@ private fun ExpenseListPanel(
     modifier: Modifier = Modifier,
     expenses: List<Expense>,
     onStatusToggle: (Expense) -> Unit,
-    onDelete: (Expense) -> Unit
+    onDelete: (Expense) -> Unit,
+    onEdit: (Expense) -> Unit
 ) {
     Surface(
         modifier = modifier.fillMaxHeight(),
@@ -335,13 +356,14 @@ private fun ExpenseListPanel(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(items = expenses, key = { it.id }) { expense ->
                         ExpenseRow(
                             expense = expense,
                             onStatusToggle = { onStatusToggle(expense) },
-                            onDelete = { onDelete(expense) }
+                            onDelete = { onDelete(expense) },
+                            onEdit = { onEdit(expense) }
                         )
                     }
                 }
@@ -354,7 +376,8 @@ private fun ExpenseListPanel(
 private fun ExpenseRow(
     expense: Expense,
     onStatusToggle: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: () -> Unit
 ) {
     val statusColor = if (expense.status == "Pago") Color(0xFF10B981) else Color(0xFFF59E0B)
     val statusBgColor = if (expense.status == "Pago") Color(0xFFD1FAE5) else Color(0xFFFEF3C7)
@@ -367,96 +390,95 @@ private fun ExpenseRow(
     }
 
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         color = Color(0xFFFAFAFA),
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp)
-            .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp))
+            .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(12.dp))
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(18.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Informações principais em coluna
             Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = expense.fornecedor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = Color(0xFF1F2937)
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = Color(0xFFE5E7EB)
+                    ) {
+                        Text(
+                            text = expense.categoria,
+                            color = Color(0xFF6B7280),
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(4.dp, 2.dp)
+                        )
+                    }
+                }
                 Text(
-                    text = expense.fornecedor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = Color(0xFF1F2937)
-                )
-                Text(
-                    text = expense.categoria,
-                    color = Color(0xFF6B7280),
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-                Text(
-                    text = if (isOverdue) {
-                        "⚠️ Vencido há ${-daysUntilDue} dia${if (daysUntilDue != -1L) "s" else ""}"
-                    } else if (daysUntilDue == 0L) {
-                        "⏰ Vence hoje!"
-                    } else {
-                        "📅 Vence em $daysUntilDue dia${if (daysUntilDue != 1L) "s" else ""}"
-                    },
+                    text = if (isOverdue) "⚠️ Vencido há ${-daysUntilDue}d"
+                    else if (daysUntilDue == 0L) "⏰ Vence hoje!"
+                    else "📅 ${daysUntilDue}d restantes",
                     color = urgencyColor,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(top = 8.dp)
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
             }
 
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+            // Valor
+            Text(
+                text = formatCurrency(expense.valor),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF059669)
+            )
+
+            // Status badge
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = statusBgColor
             ) {
                 Text(
-                    text = formatCurrency(expense.valor),
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF059669)
+                    text = expense.status,
+                    color = statusColor,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(6.dp, 3.dp)
                 )
+            }
 
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = statusBgColor
+            // Botões de ação
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                IconButton(
+                    onClick = onStatusToggle,
+                    modifier = Modifier.size(32.dp)
                 ) {
-                    Text(
-                        text = expense.status,
-                        color = statusColor,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(6.dp, 3.dp)
-                    )
+                    Text(if (expense.status == "Pago") "↩️" else "✅", fontSize = 14.sp)
                 }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(top = 4.dp)
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.size(32.dp)
                 ) {
-                    Button(
-                        onClick = onStatusToggle,
-                        colors = ButtonDefaults.buttonColors(
-                            backgroundColor = statusColor,
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier
-                            .height(32.dp)
-                            .width(90.dp),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Text(if (expense.status == "Pago") "Desfazer" else "Marcar", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                    TextButton(
-                        onClick = onDelete,
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text("🗑️", fontSize = 16.sp)
-                    }
+                    Text("✏️", fontSize = 14.sp)
+                }
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Text("🗑️", fontSize = 14.sp)
                 }
             }
         }
@@ -493,6 +515,101 @@ private val brazilLocale = Locale.forLanguageTag("pt-BR")
 
 private fun formatCurrency(value: Double): String {
     return java.text.NumberFormat.getCurrencyInstance(brazilLocale).format(value)
+}
+
+@Composable
+private fun EditExpenseDialog(
+    expense: Expense,
+    onDismiss: () -> Unit,
+    onSave: (String, Double) -> Unit
+) {
+    var fornecedor by remember { mutableStateOf(expense.fornecedor) }
+    var valor by remember { mutableStateOf(expense.valor.toString()) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    androidx.compose.ui.window.DialogWindow(
+        onCloseRequest = onDismiss,
+        title = "✏️ Editar Despesa"
+    ) {
+        Surface(
+            modifier = Modifier
+                .width(400.dp)
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White,
+            elevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Editar Despesa",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF065F46)
+                )
+
+                ExpenseTextField(
+                    value = fornecedor,
+                    onValueChange = { fornecedor = it },
+                    label = "🏢 Fornecedor"
+                )
+
+                ExpenseTextField(
+                    value = valor,
+                    onValueChange = { valor = it },
+                    label = "💰 Valor",
+                    keyboardType = KeyboardType.Decimal
+                )
+
+                errorMessage?.let { message ->
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFEE2E2)
+                    ) {
+                        Text(
+                            text = "⚠️ $message",
+                            color = Color(0xFFDC2626),
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancelar", color = Color(0xFF6B7280))
+                    }
+                    Button(
+                        onClick = {
+                            val parsedValue = valor.replace(',', '.').toDoubleOrNull()
+
+                            errorMessage = when {
+                                fornecedor.isBlank() -> "Informe o fornecedor."
+                                parsedValue == null || parsedValue <= 0.0 -> "Informe um valor numérico maior que zero."
+                                else -> null
+                            }
+
+                            if (errorMessage == null && parsedValue != null) {
+                                onSave(fornecedor.trim(), parsedValue)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = Color(0xFF059669),
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("💾 Salvar", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
 }
 
 

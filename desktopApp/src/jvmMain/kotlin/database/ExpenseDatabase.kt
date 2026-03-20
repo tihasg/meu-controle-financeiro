@@ -125,6 +125,15 @@ class ExpenseDatabase {
         }
     }
 
+    fun updateExpense(id: Int, fornecedor: String, valor: Double) {
+        getConnection().prepareStatement("UPDATE expenses SET fornecedor = ?, valor = ? WHERE id = ?").use { stmt ->
+            stmt.setString(1, fornecedor)
+            stmt.setDouble(2, valor)
+            stmt.setInt(3, id)
+            stmt.executeUpdate()
+        }
+    }
+
     fun deleteExpense(id: Int) {
         getConnection().prepareStatement("DELETE FROM expenses WHERE id = ?").use { stmt ->
             stmt.setInt(1, id)
