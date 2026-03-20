@@ -78,8 +78,7 @@ class ExpenseDatabase {
     // ===== DESPESAS =====
     fun addExpense(expense: Expense): Int {
         getConnection().prepareStatement(
-            "INSERT INTO expenses (fornecedor, categoria, valor, status, vencimento) VALUES (?, ?, ?, ?, ?)",
-            Statement.RETURN_GENERATED_KEYS
+            "INSERT INTO expenses (fornecedor, categoria, valor, status, vencimento) VALUES (?, ?, ?, ?, ?)"
         ).use { stmt ->
             stmt.setString(1, expense.fornecedor)
             stmt.setString(2, expense.categoria)
@@ -87,9 +86,12 @@ class ExpenseDatabase {
             stmt.setString(4, expense.status)
             stmt.setString(5, expense.vencimento.toString())
             stmt.executeUpdate()
-
-            stmt.generatedKeys.use { generatedKeys ->
-                return if (generatedKeys.next()) generatedKeys.getInt(1) else 0
+        }
+        
+        // Retornar o ID da última linha inserida
+        getConnection().createStatement().use { stmt ->
+            stmt.executeQuery("SELECT last_insert_rowid() as id").use { rs ->
+                return if (rs.next()) rs.getInt("id") else 0
             }
         }
     }
@@ -133,8 +135,7 @@ class ExpenseDatabase {
     // ===== RECEITAS =====
     fun addReceita(receita: Receita): Int {
         getConnection().prepareStatement(
-            "INSERT INTO receitas (descricao, categoria, valor, status, data) VALUES (?, ?, ?, ?, ?)",
-            Statement.RETURN_GENERATED_KEYS
+            "INSERT INTO receitas (descricao, categoria, valor, status, data) VALUES (?, ?, ?, ?, ?)"
         ).use { stmt ->
             stmt.setString(1, receita.descricao)
             stmt.setString(2, receita.categoria)
@@ -142,9 +143,12 @@ class ExpenseDatabase {
             stmt.setString(4, receita.status)
             stmt.setString(5, receita.data.toString())
             stmt.executeUpdate()
-
-            stmt.generatedKeys.use { generatedKeys ->
-                return if (generatedKeys.next()) generatedKeys.getInt(1) else 0
+        }
+        
+        // Retornar o ID da última linha inserida
+        getConnection().createStatement().use { stmt ->
+            stmt.executeQuery("SELECT last_insert_rowid() as id").use { rs ->
+                return if (rs.next()) rs.getInt("id") else 0
             }
         }
     }

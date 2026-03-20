@@ -24,8 +24,29 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "KotlinMultiplatformComposeDesktopApplication"
+            packageName = "Controle-de-Gastos"
             packageVersion = "1.0.0"
+            
+            // Incluir JVM no pacote para funcionar sem Java instalado
+            includeAllModules = true
+            
+            // Configuração da JVM
+            jvmArgs += listOf(
+                "-Dfile.encoding=UTF-8",
+                "-Xmx512m"
+            )
+            
+            windows {
+                menuGroup = "Controle de Gastos"
+                shortcut = true
+                // Usar bundled JVM
+                dirChooser = true
+                perUserInstall = true
+            }
+            
+            linux {
+                shortcut = true
+            }
         }
     }
 }
